@@ -1,7 +1,7 @@
 package freetocompose.example
 
 import scala.language.higherKinds
-import cats.std.function._
+import scalaz.std.function._
 import Console.functions._
 import Utils._
 
@@ -19,12 +19,8 @@ object ConsoleExample {
   def main(args: Array[String]): Unit = {
     scala.Console.println("Using Lists\n=============")
     val lp = repeat(2)(program).foldMap(ConsoleCompile.toListState)
-    val lr = lp.run(("Maya" :: "Mario" :: Nil, Nil)).value
+    val lr = lp.run(("Maya" :: "Mario" :: Nil, Nil))
     scala.Console.println(s"State results in ${lr._2} (outputs = ${lr._1._2})")
-
-    scala.Console.println("------\n\nUsing Trampoline\n=============")
-    val tr = iterateUntil((v: String) ⇒ v.isEmpty)(program).foldMap(ConsoleCompile.toTrampoline)
-    tr.run //executes
 
     scala.Console.println("------\n\nUsing Id\n=============")
     val ir = iterateUntil((v: String) ⇒ v.isEmpty)(program).foldMap(ConsoleCompile.toId) //executes

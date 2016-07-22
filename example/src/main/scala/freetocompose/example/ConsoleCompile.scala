@@ -1,9 +1,8 @@
 package freetocompose.example
 
 import Console.functions.Console, ConsoleOps._
-import cats.free.Trampoline
-import cats.{ ~>, Id }
-import cats.data.State
+import scalaz.{ ~>, Id }
+import scalaz.State
 
 object ConsoleCompile {
   type Lists = (List[String], List[String])
@@ -16,33 +15,25 @@ object ConsoleCompile {
         for {
           v ← State.get[Lists]
           (ins, outs) = v
-          _ ← State.set((ins, outs :+ text))
+          _ ← State.put((ins, outs :+ text))
         } yield ()
       case Print(text) ⇒
         for {
           v ← State.get[Lists]
           (ins, outs) = v
-          _ ← State.set((ins, outs :+ text))
+          _ ← State.put((ins, outs :+ text))
         } yield ()
       case Readln() ⇒
         for {
           v ← State.get[Lists]
           (ins, outs) = v
-          _ ← State.set((ins.tail, outs))
+          _ ← State.put((ins.tail, outs))
         } yield (ins.head)
     }
   }
 
-  /** Interpreter that reads from sysin and writes to sysout directly using trampolining. */
-  object toTrampoline extends (ConsoleOp ~> Trampoline) {
-    override def apply[A](fa: ConsoleOp[A]) = fa match {
-      case Println(text) ⇒ Trampoline.delay(scala.Console.println(text))
-      case Print(text) ⇒ Trampoline.delay(scala.Console.print(text))
-      case Readln() ⇒ Trampoline.delay(scala.io.StdIn.readLine())
-    }
-  }
   /** Interpreter that reads from sysin and writes to sysout directly (side-effect). */
-  object toId extends (ConsoleOp ~> Id) {
+  object toId extends (ConsoleOp ~> Id.Id) {
     override def apply[A](fa: ConsoleOp[A]) = fa match {
       case Println(text) ⇒ scala.Console.println(text)
       case Print(text) ⇒ scala.Console.print(text)

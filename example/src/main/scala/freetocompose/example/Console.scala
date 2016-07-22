@@ -20,7 +20,3 @@ object Console {
 object Console_val {
   val functions = liftFunctions[ConsoleOps.ConsoleOp]('Console)
 }
-object Console_vampires {
-  val functions = liftFunctionsVampire[ConsoleOps.ConsoleOp]('Console)
-}
-

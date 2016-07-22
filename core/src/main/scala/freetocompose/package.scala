@@ -1,5 +1,5 @@
 import scala.language.higherKinds
-import cats._
+import scalaz.~>
 
 package object freetocompose {
   implicit class TransformationOps[F[_], H[_]](val f: F ~> H) {

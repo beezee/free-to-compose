@@ -54,7 +54,6 @@ class addComposingFunctions[Op[_]](typeName: Symbol) extends StaticAnnotation {
   */
 object Macro {
   def liftFunctions[F[_]](typeName: Symbol): Any = macro Macro.liftFunctions_impl[F]
-  def liftFunctionsVampire[F[_]](typeName: Symbol): Any = macro Macro.liftFunctionsVampire_impl[F]
 }
 
 
@@ -69,20 +68,8 @@ class Macro(val c: whitebox.Context) {
     val alias = macroParameter(typeName.tree)
 
     anonClass(typeAlias(alias, desc) ::
-      monadDefinition(desc) ::
       desc.ops.map(liftedFunction(alias, _)))
   }
-
-  def liftFunctionsVampire_impl[F[_]](typeName: Expr[Any])(implicit t: c.WeakTypeTag[F[_]]) = {
-    val desc = Describe(t.tpe.typeSymbol)
-    val alias = macroParameter(typeName.tree)
-
-    anonClass(typeAlias(alias, desc) ::
-      monadDefinition(desc) ::
-      q"import scala.language.experimental.macros" ::
-      desc.ops.map(liftedFunctionWithVampire(alias, _)))
-  }
-
 
   def addLiftFunctionsAnnotation_impl(annottees: Expr[Any]*) = {
     val (opBase, alias) = parseAnnotation
@@ -90,7 +77,6 @@ class Macro(val c: whitebox.Context) {
 
     modifyObjectOrClass(annottees,
       typeAlias(alias, desc) ::
-        monadDefinition(desc) ::
         desc.ops.map(liftedFunction(alias, _)))
   }
 
@@ -102,12 +88,12 @@ class Macro(val c: whitebox.Context) {
     val importHigherKinds =
       q"import scala.language.higherKinds"
     val typeAlias =
-      q"type $alias[F[_]] = _root_.cats.free.Inject[${desc.opBase.typeSymbol}, F]"
+      q"type $alias[F[_]] = _root_.scalaz.Inject[${desc.opBase.typeSymbol}, F]"
 
     def function(op: Op) = {
       val paramNames = op.params.map(_.name)
       val paramDefs = op.params.map { p ⇒ q"${p.name}: ${p.tpe}" }
-      q"""def ${op.functionName}[F[_] : $alias](..$paramDefs): _root_.cats.free.Free[F, ${op.opA}] =
+      q"""def ${op.functionName}[F[_] : $alias](..$paramDefs): _root_.scalaz.Free[F, ${op.opA}] =
           _root_.freetocompose.Compose.lift(${op.companion}(..$paramNames))"""
     }
 
@@ -152,50 +138,15 @@ class Macro(val c: whitebox.Context) {
   }
 
   private def typeAlias(name: TypeName, desc: Description): Tree = {
-    q"type $name[A] = _root_.cats.free.Free[${desc.opBase.typeSymbol}, A]"
-  }
-
-  private def monadDefinition(desc: Description): Tree = {
-    q"""implicit val monad = _root_.cats.free.Free.freeMonad[${desc.opBase.typeSymbol}]"""
+    q"type $name[A] = _root_.scalaz.Free[${desc.opBase.typeSymbol}, A]"
   }
 
   private def liftedFunction(typeAlias: TypeName, op: Op): Tree = {
     val paramNames = op.params.map(_.name)
     val paramDefs = op.params.map { p ⇒ q"${p.name}: ${p.tpe}" }
     q"""def ${op.functionName}(..$paramDefs): $typeAlias[${op.opA}] =
-          _root_.cats.free.Free.liftF(${op.companion}(..$paramNames))"""
+          _root_.scalaz.Free.liftF(${op.companion}(..$paramNames))"""
   }
-
-  private def liftedFunctionWithVampire(typeAlias: TypeName, op: Op): Tree = {
-    val paramDefs = op.params.zipWithIndex.map {
-      case (Field(_, tpe), index) ⇒
-        val name = TermName("in" + (index + 1))
-        q"""$name: $tpe"""
-    }
-    if (paramDefs.size > 5) {
-      c.abort(c.enclosingPosition, s"More parameters in ${op.name} than supported " +
-        "by the FreeMacro. Please tell the maintainer to extend it.")
-    }
-    val vampire = TermName(s"vampire${paramDefs.size}_impl")
-    q"""@_root_.freetocompose.vampire(${op.companion})
-        def ${op.functionName}(..$paramDefs): $typeAlias[${op.opA}] =
-          macro _root_.freetocompose.Macro.$vampire"""
-  }
-  //Vampire Methods to avoid structural type warning
-  def vampire0_impl() =
-    q"_root_.cats.free.Free.liftF($companionFromVampire())"
-  def vampire1_impl(in1: Expr[Any]) =
-    q"_root_.cats.free.Free.liftF($companionFromVampire($in1))"
-  def vampire2_impl(in1: Expr[Any], in2: Expr[Any]) =
-    q"_root_.cats.free.Free.liftF($companionFromVampire($in1, $in2))"
-  def vampire3_impl(in1: Expr[Any], in2: Expr[Any], in3: Expr[Any]) =
-    q"_root_.cats.free.Free.liftF($companionFromVampire($in1, $in2, $in3))"
-  def vampire4_impl(in1: Expr[Any], in2: Expr[Any], in3: Expr[Any], in4: Expr[Any]) =
-    q"_root_.cats.free.Free.liftF($companionFromVampire($in1, $in2, $in3, $in4))"
-  def vampire5_impl(in1: Expr[Any], in2: Expr[Any], in3: Expr[Any], in4: Expr[Any], in5: Expr[Any]) =
-    q"_root_.cats.free.Free.liftF($companionFromVampire($in1, $in2, $in3, $in4, $in5))"
-  private def companionFromVampire = macroAnnotation[vampire].tree.children.tail.head
-
 
   /** Describes an operation hierarchy. */
   private object Describe {
@@ -257,6 +208,3 @@ class Macro(val c: whitebox.Context) {
     }
   }
 }
-
-//Vampire-body, see http://meta.plasm.us/posts/2013/07/12/vampire-methods-for-structural-types/
-class vampire(tree: Any) extends StaticAnnotation
