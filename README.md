@@ -4,7 +4,7 @@ Free-to-Compose
 [![codecov](https://codecov.io/gh/msiegenthaler/free-to-compose/branch/master/graph/badge.svg)](https://codecov.io/gh/msiegenthaler/free-to-compose)
 [![Dependency Status](https://www.versioneye.com/user/projects/5736220d4a0faa000b7efc48/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5736220d4a0faa000b7efc48)
 
-Library that eases the usage of Free Monads based on cats and allows to compose multiple free monads into one.
+Library that eases the usage of Free Monads based on scalaz and allows to compose multiple free monads into one.
 
 It provides macros to automatically generate the lifting functions and composable lifting functions. The library
 can be used in two ways: simple lifting functions and a composable variant based on Rúnar's talk
@@ -20,7 +20,7 @@ Declare your Ops (the F[_]):
       case class Println(text: String) extends ConsoleOp[Unit]
       case class Readln() extends ConsoleOp[String]
     }
-    
+
 then have the macro generate the lifting functions:
 
     import freetocompose.FreeToCompose
@@ -48,7 +48,7 @@ Use the lifted functions like usual:
 
 to run it use:
 
-    val pgm = program.foldMap(ConsoleCompile.toTrampoline)
+    val pgm = program.foldMap(ConsoleCompile.toId)
     pgm.run
 
 
@@ -97,9 +97,9 @@ When using we may now combine the two different kinds of operations into one mon
     } yield name
 
 
-of course you then also need to combine the Compilers (= Transforms  = cats.~>):
+of course you then also need to combine the Compilers (= Transforms  = scalaz.~>):
 
-     val compiler = ConsoleCompile.toTrampoline || StoreCompile.toTrampoline()
+     val compiler = ConsoleCompile.toId || StoreCompile.toId()
      val program = assignRoom[compiler.From].foldMap(compiler)
      program.run
 
@@ -125,4 +125,4 @@ Credits and further readings
 - Idea for the macro by Travis Brown: https://gist.github.com/travisbrown/43c9dc072bfb2bba2611
 - Idea for composition via Coproducts Rúnar Bjarnason (@runarorama): http://functionaltalks.org/2014/11/23/runar-oli-bjarnason-free-monad/
 - How to fix the knownDirectSubclasses problem by Lloyd: https://github.com/lloydmeta/enumeratum
-- The great cats library: https://github.com/non/cats
+- The great scalaz library: https://github.com/scalaz/scalaz/
