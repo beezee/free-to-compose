@@ -15,8 +15,6 @@ object Console {
   @addComposingFunctions[ConsoleOps.ConsoleOp]('Console) object composing
 }
 
-//The following two variants are essentially the same as above
-
 object Console_val {
   val functions = liftFunctions[ConsoleOps.ConsoleOp]('Console)
 }
